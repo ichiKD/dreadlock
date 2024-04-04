@@ -24,7 +24,7 @@ int computation_time[100];
 bool done[100];
 
 
-std::vector<sem_t> semaphores;
+
 
 
 struct Instructions
@@ -259,8 +259,6 @@ void read_text(){
 }
 
 
-
-
 void read_resources(){
     std::ifstream file("example2.txt"); // Open the file
 
@@ -293,8 +291,6 @@ void read_resources(){
     file.close(); // Close the file
 
 }
-
-
 
 
 void print_read_text(){
@@ -349,14 +345,11 @@ void print_read_text(){
 }
 
 
-
-
 void resources_to_semaphores(){
     for(auto r: resourceList){
         std::vector<std::pair<sem_t, std::string>> t;
         for(std::string item: r){
-            std:: pair<sem_t, std::string> ss;
-            
+            std:: pair<sem_t, std::string> ss; 
             sem_init(&(ss.first), process, 1);
             t.push_back(ss);
         }
@@ -364,7 +357,13 @@ void resources_to_semaphores(){
     }
 }
 
-
+void process_semaphores(){
+    for(int i=0; i<process; i++){
+        sem_t semaphore;
+        sem_init(&semaphore, 1, 1);
+        processSemaphore.push_back(semaphore);
+    }
+}
 
 
 
@@ -376,18 +375,20 @@ int main(){
     read_resources();
     resources_to_semaphores();
     print_read_text();
+    process_semaphores();
+    // id = process for schedular
+    // for ith process ID = i
+    int ID = process;
+
+
+
+
+
     for(int i=0; i<process; i++){
         index_of_last_request_yet_to_be_processed.push_back(0);
     }
 
 
-
-
-    for(int i=0; i<resources; i++){
-        sem_t newSemaphore;
-        sem_init(&newSemaphore, 0, 1); // Initialize the new semaphore
-        semaphores.push_back(newSemaphore);
-    }
 
     // {Earliest Deadline, {-longestJobFirst, processID}}
     std::priority_queue<std::pair<int, std::pair<int, int>>, 
@@ -399,6 +400,10 @@ int main(){
     // computation_time = number of request and release 
     //                    + parenthesized value in calculate + x from use_resources 
 
+
+
+    // Earliest Deadline + longestJobFirst
+    
 
 
 
