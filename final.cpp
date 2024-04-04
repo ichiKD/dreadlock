@@ -11,12 +11,17 @@
 #include <vector>
 #include <algorithm>
 #include <semaphore.h>
+#include <queue>
 
 
 
 
 int resources, process;
-
+int maximum[100][100];
+int avaliable[100];
+int deadline[100];
+int computation_time[100];
+bool done[100];
 
 
 std::vector<sem_t> semaphores;
@@ -39,6 +44,7 @@ struct Instructions
 
 
 std::vector<struct Instructions> processInstructions; 
+std::vector<int> index_of_last_request_yet_to_be_processed;
 
 
 
@@ -46,11 +52,66 @@ void read_text(){
     std::ifstream file("example.txt"); // Open the file
 
     if (!file.is_open()) {
-        std::cerr << "Error opening file" << std::endl;
+        printf("Error opening file\n");
         return;
     }
 
-    std::string line;
+    std::string line = "";
+    while(line == ""){
+        std::getline(file, line);
+    }
+    resources = std::stoi(line);
+    line = "";
+    while(line == ""){
+        std::getline(file, line);
+    }
+    process = std::stoi(line);
+
+
+    for(int i=0; i<resources; i++){
+        line = "";
+        while(line == ""){
+            std::getline(file, line);
+        }
+        int idx=0;
+        if(line[0]<'0' || line[0]> '9'){
+            for(int j=0; j<line.length(); j++){
+                if(line[j] == '='){
+                    idx = j+1;
+                    break;
+                }
+            }
+        }
+        avaliable[i] = std::stoi(line.substr(idx));
+    }
+
+    for(int i=0; i<process; i++){
+        line = "";
+        while(line == ""){
+            std::getline(file, line);
+        }
+        if(line[0]<'0' || line[0]> '9'){
+            maximum[i][0] = std::stoi(line.substr(line.find('=') + 1));
+            for(int j=1; j<resources; j++){
+                line = "";
+                while(line == ""){
+                    std::getline(file, line);
+                }
+                maximum[i][j] = std::stoi(line.substr(line.find('=') + 1));
+            }
+        }
+        else{
+            std::istringstream int_stream(line);
+            int x;
+            for(int j=0; j<resources; j++){
+                int_stream>> x;
+                maximum[i][j] = x;
+            }
+        }
+    }
+
+
+
     int end_count=0;
     struct Instructions Temp;
     while (end_count < process) { // Read lines until the end of the file
@@ -115,7 +176,16 @@ void read_text(){
             Temp.Ins.push_back(order);
         }
         else if(line.substr(0, 7) == "process"){
-            continue;
+            line = "";
+            while(line == ""){
+                std::getline(file, line);
+            }
+            deadline[end_count] = std::stoi(line);
+            line = "";
+            while(line == ""){
+                std::getline(file, line);
+            }
+            computation_time[end_count] = std::stoi(line);
         }
         else if(line.substr(0, 9) == "calculate"){
             std::pair<int, std::vector<int>> order;
@@ -183,38 +253,108 @@ void read_text(){
 
 
 
+std::vector< std::vector<std::string> > resourceList;
+
+void read_resources(){
+    std::ifstream file("example2.txt"); // Open the file
+
+    if (!file.is_open()) {
+        printf("Error opening file.");
+        return;
+    }
+
+    std::string line="";
+    for(int i=0; i<resources; i++){
+        std::vector<std::string> r;
+        line="";
+        while(line == ""){
+            std::getline(file, line);
+        }
+        line = line.substr(line.find(':')+1);
+        printf("The line after 1st is %s\n", line.c_str());
+        line = line.substr(line.find(':')+1);
+        printf("The line after 2nd is %s\n", line.c_str());
+        std::istringstream res(line);
+        std::string item;
+        while (std::getline(res, item, ',')) {
+            item.erase(0, item.find_first_not_of(" ")); //Trimping starting space ' '
+            item.erase(item.find_last_not_of(" ") + 1); //Trimping ending space   ' '
+            r.push_back(item);
+        }
+        resourceList.push_back(r);
+        r.clear();
+    }
+    file.close(); // Close the file
+
+}
+
+
+
+
+void print_read_text(){
+    printf("the resources is %d, the procses is %d\n", resources, process);
+    printf("The avaliable resourses are: \n");
+    for(int i=0; i<resources; i++){
+        printf("%d ", avaliable[i]);
+    }
+    printf("\n");
+    printf("The maximum resourses needed are: \n");
+    printf("    ");
+    for(int i=0; i<resources; i++){
+        printf("%2d ", i+1);
+    }
+    printf("\n");
+    for(int i=0; i<process; i++){
+        printf("%2d: ", i);
+        for(int j=0; j<resources; j++){
+            printf("%2d ", maximum[i][j]);
+        }
+        printf("\n");
+    }
+    printf("The avaliable deadline are: \n");
+    for(int i=0; i<process; i++){
+        printf("%2d ", deadline[i]);
+    }
+    printf("\n");
+    printf("The avaliable computation_time are: \n");
+    for(int i=0; i<process; i++){
+        printf("%2d ", computation_time[i]);
+    }
+    printf("\n");
+    for(int i=0; i<process; i++){
+        printf("For %2dth process the instruction list is:\n", i+1);
+        for(auto x: processInstructions[i].Ins){
+            printf("{%d, {", x.first);
+            for(int y : x.second){
+                printf("%2d, ", y);
+            }
+            printf("}}\n");
+        }
+
+    }
+
+    printf("The resourceList is\n");
+    for(auto r: resourceList){
+        for(std::string item: r){
+            printf("%s\n", item.c_str());
+        }
+        printf("\n");
+    }
+}
+
 
 
 int main(){
-    int maximum[100][100];
-    int avaliable[100];
-    int deadline[100];
-    int computation_time[100];
-    bool done[100];
 
-    // Input
-    scanf("%d%d", &resources , &process);
-    for(int i=0; i<resources; i++){
-        scanf("%d", &avaliable[i]);
-    }
+
+    read_text();
+    read_resources();
+    print_read_text();
     for(int i=0; i<process; i++){
-        for(int j=0; j<resources; j++){
-            scanf("%d", &maximum[i][j]);
-        }
+        index_of_last_request_yet_to_be_processed.push_back(0);
     }
-    for(int i=0; i<process; i++){
-        scanf("%d", &deadline[i]);
-        computation_time[i] =0;
-        done[i] = false;
-    }
-    bool dreadlock_check=0;
-    for(int i=0; i<process; i++){
-        for(int j=0; j<resources; j++){
-            if(maximum[i][j] > avaliable[j]){
-                dreadlock_check =1; // will have dreadlock
-            }
-        }
-    }
+
+
 
 
     for(int i=0; i<resources; i++){
@@ -223,9 +363,15 @@ int main(){
         semaphores.push_back(newSemaphore);
     }
 
+    // {Earliest Deadline, {longestJobFirst, processID}}
+    std::priority_queue<std::pair<int, std::pair<int, int>>, 
+        std::vector<std::pair<int, std::pair<int, int>>>, 
+        std::greater<std::pair<int, std::pair<int, int>>> 
+    > pq;
+
 
     // computation_time = number of request and release 
-    //                    + 
+    //                    + parenthesized value in calculate + x from use_resources 
 
 
 
