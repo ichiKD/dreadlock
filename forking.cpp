@@ -10,11 +10,10 @@ std::vector<pid_t> processID;
 
 int main() {
     int n = 5; // Number of processes to create
-    
-    // For ith child processes ID = will be i
-    // For manager process ID = 0
-    int ID = 0;
-    for (int i = 1; i <= n; i++) {
+    // For ith child processes ID = will be i-1 {0, 1, ... n-1}
+    // For manager process ID = n
+    int ID = n;
+    for (int i = 0; i < n; i++) {
         pid_t pid = fork();
         if (pid == -1) {
             // Error occurred
