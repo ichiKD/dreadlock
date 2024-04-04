@@ -24,18 +24,21 @@ std::vector<sem_t> semaphores;
 
 struct Instructions
 {
-    std::vector<std::pair<int, std::vector<int>>> INS;
+    std::vector<std::pair<int, std::vector<int>>> Ins;
     // INS[i] = 
-    // calculate(x) = {1, {x}}
-    // request(1, 2, 3, 4, .. m) = {2, {1, 2, 3, ... m}}
-    // use_resorusces(x, y) = {3, {x, y}}
-    // release(1, 2, 3, 4, .. m) = {4, {1, 2, 3, ... m}}
+    // request(1, 2, 3, 4, .. m) = {1, {1, 2, 3, ... m}}
+    // release(1, 2, 3, 4, .. m) = {2, {1, 2, 3, ... m}}
+    // calculate(x) = {3, {x}}
+    // use_resorusces(x, y) = {4, {x, y}}
     // print_recouses_used = {5, {}}
-    // end = {6, 0}
+    // end = {6, {}}
 };
 
 
-std::vector<struct Instructions> process_I; 
+
+
+
+std::vector<struct Instructions> processInstructions; 
 
 
 
@@ -49,6 +52,7 @@ void read_text(){
 
     std::string line;
     int end_count=0;
+    struct Instructions Temp;
     while (end_count < process) { // Read lines until the end of the file
         std::getline(file, line);
         while(line == ""){
@@ -56,18 +60,115 @@ void read_text(){
         }
         if(line == "end."){
             end_count++;
+            std::pair<int, std::vector<int>> order;
+            order.first = 6;
+            Temp.Ins.push_back(order);
+            processInstructions.push_back(Temp);
+            Temp.Ins.clear();
         }
-        else if(line == "print_resources_used;"){
-
+        else if(line.substr(0, 7) == "request"){
+            std::pair<int, std::vector<int>> order;
+            order.first = 1;
+            for(int i=8; i<line.length(); i++){
+                while( (line[i] == ' ' || line[i] == ',' || line[i] == '(' ||
+                        line[i] == ')' || line[i] == ';'  ) 
+                        && i<line.length() ){
+                    i++;
+                }
+                int x=0;
+                while('0'<=line[i] && line[i] <= '9'){
+                    x=x*10 + (line[i] - '0');
+                    i++;
+                }
+                order.second.push_back(x);
+                if(order.second.size() == resources){
+                    break;
+                }
+            }
+            if(order.second.size() != resources){
+                printf("Error in reading request\n");
+            }
+            Temp.Ins.push_back(order);
+        }
+        else if(line.substr(0, 7) == "release"){
+            std::pair<int, std::vector<int>> order;
+            order.first = 2;
+            for(int i=8; i<line.length(); i++){
+                while( (line[i] == ' ' || line[i] == ',' || line[i] == '(' ||
+                        line[i] == ')' || line[i] == ';'  ) 
+                        && i<line.length() ){
+                    i++;
+                }
+                int x=0;
+                while('0'<=line[i] && line[i] <= '9'){
+                    x=x*10 + (line[i] - '0');
+                    i++;
+                }
+                order.second.push_back(x);
+                if(order.second.size() == resources){
+                    break;
+                }
+            }
+            if(order.second.size() != resources){
+                printf("Error in reading release\n");
+            }
+            Temp.Ins.push_back(order);
         }
         else if(line.substr(0, 7) == "process"){
             continue;
         }
-        else if(line.substr(0, 7) == "request"){
-            
+        else if(line.substr(0, 9) == "calculate"){
+            std::pair<int, std::vector<int>> order;
+            order.first = 3;
+            for(int i=10; i<line.length(); i++){
+                while( (line[i] == ' ' || line[i] == ',' || line[i] == '(' ||
+                        line[i] == ')' || line[i] == ';'  ) 
+                        && i<line.length() ){
+                    i++;
+                }
+                int x=0;
+                while('0'<=line[i] && line[i] <= '9'){
+                    x=x*10 + (line[i] - '0');
+                    i++;
+                }
+                order.second.push_back(x);
+                if(order.second.size() == 1){
+                    break;
+                }
+            }
+            if(order.second.size() != 1){
+                printf("Error in reading calculate\n");
+            }
+            Temp.Ins.push_back(order);
         }
         else if(line.substr(0, 13) == "use_resources"){
-
+            std::pair<int, std::vector<int>> order;
+            order.first = 4;
+            for(int i=14; i<line.length(); i++){
+                while( (line[i] == ' ' || line[i] == ',' || line[i] == '(' ||
+                        line[i] == ')' || line[i] == ';'  ) 
+                        && i<line.length() ){
+                    i++;
+                }
+                int x=0;
+                while('0'<=line[i] && line[i] <= '9'){
+                    x=x*10 + (line[i] - '0');
+                    i++;
+                }
+                order.second.push_back(x);
+                if(order.second.size() == 2){
+                    break;
+                }
+            }
+            if(order.second.size() != 2){
+                printf("Error in reading use_resources\n");
+            }
+            Temp.Ins.push_back(order);
+        }
+        else if(line == "print_resources_used;"){
+            std::pair<int, std::vector<int>> order;
+            order.first = 5;
+            Temp.Ins.push_back(order);
         }
         else{
             const char* cLine = line.c_str();
