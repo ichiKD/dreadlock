@@ -40,12 +40,19 @@ struct Instructions
 };
 
 
-
+struct process{
+    int id;
+    std::vector<std::vector<int>> index_to_accquired_resources;
+};
 
 
 std::vector<struct Instructions> processInstructions; 
 std::vector<int> index_of_last_request_yet_to_be_processed;
 
+std::vector< std::vector<std::string> > resourceList;
+std::vector< std::vector< std::pair< sem_t, std::string> > > resourceListSemaphore;
+
+std::vector<sem_t> processSemaphore;
 
 
 void read_text(){
@@ -253,7 +260,6 @@ void read_text(){
 
 
 
-std::vector< std::vector<std::string> > resourceList;
 
 void read_resources(){
     std::ifstream file("example2.txt"); // Open the file
@@ -344,11 +350,31 @@ void print_read_text(){
 
 
 
+
+void resources_to_semaphores(){
+    for(auto r: resourceList){
+        std::vector<std::pair<sem_t, std::string>> t;
+        for(std::string item: r){
+            std:: pair<sem_t, std::string> ss;
+            
+            sem_init(&(ss.first), process, 1);
+            t.push_back(ss);
+        }
+        resourceListSemaphore.push_back(t);
+    }
+}
+
+
+
+
+
+
 int main(){
 
 
     read_text();
     read_resources();
+    resources_to_semaphores();
     print_read_text();
     for(int i=0; i<process; i++){
         index_of_last_request_yet_to_be_processed.push_back(0);
@@ -363,7 +389,7 @@ int main(){
         semaphores.push_back(newSemaphore);
     }
 
-    // {Earliest Deadline, {longestJobFirst, processID}}
+    // {Earliest Deadline, {-longestJobFirst, processID}}
     std::priority_queue<std::pair<int, std::pair<int, int>>, 
         std::vector<std::pair<int, std::pair<int, int>>>, 
         std::greater<std::pair<int, std::pair<int, int>>> 
