@@ -519,11 +519,11 @@ int main(){
                 //end
                 //release all resources
             }
+            else{
+                // Send end signal
+                ;
+            }
             current_instruction++;
-        }
-        else{
-            // Send end signal
-            ;
         }
     }
     return 0;
