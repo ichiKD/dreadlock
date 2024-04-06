@@ -522,16 +522,27 @@ int main(){
                 //Else current_instruction, continue
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 2){
-                for(int i=0; i<resources; i++){
-                    
-                }
                 //release
+                for(int i=0; i<resources; i++){
+                    int release_num = processInstructions[ID].Ins[current_instruction].second[i];
+                    for(int j=0; j<release_num; j++){
+                        sem_t * ss = master_sem_t[i].back();
+                        master_sem_t[i].pop_back();
+                        master_string[i].pop_back();
+                    }
+                    master_sem_t[i];
+                }
+                for(int i=0; i<resources; i++){
+                    shared_numbers[i]+=processInstructions[ID].Ins[current_instruction].second[i];
+                }
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 3){
                 //calculate
+                computationTime1+=processInstructions[ID].Ins[current_instruction].second[0];
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 4){
                 //use_resorusces
+                computationTime1+=processInstructions[ID].Ins[current_instruction].second[0];
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 5){
                 printf("The master_string is \n");
@@ -541,6 +552,7 @@ int main(){
                     }
                 }
                 printf("\n");
+                fflush(stdout);
                 //print_recouses_used
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 6){
@@ -554,5 +566,7 @@ int main(){
             current_instruction++;
         }
     }
+    munmap(shared_numbers, sizeof(int) * resources);
+    shm_unlink(SHARED_MEMORY_NAME);
     return 0;
 }
