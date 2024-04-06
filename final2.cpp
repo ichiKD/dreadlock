@@ -132,7 +132,7 @@ void read_text(){
         while(line == ""){
             std::getline(file, line);
         }
-        if(line == "end."){
+        if(line.substr(0, 4) == "end."){
             end_count++;
             std::pair<int, std::vector<int>> order;
             order.first = 6;
@@ -248,7 +248,7 @@ void read_text(){
             }
             Temp.Ins.push_back(order);
         }
-        else if(line == "print_resources_used;"){
+        else if(line.substr(0, 20)  == "print_resources_used"){
             std::pair<int, std::vector<int>> order;
             order.first = 5;
             Temp.Ins.push_back(order);
@@ -368,15 +368,24 @@ void resources_to_semaphores(){
     }
 }
 
-void process_semaphores(){
-    for(int i=0; i<process; i++){
-        int value=0;
-        std::string name = "Process_ID_"+std::to_string(i);
-        sem_t *ss = sem_open(name.c_str(), O_CREAT, 0660, value);
-        processSemaphore.push_back(semaphore);
+void process_semaphores() {
+    for (int i = 0; i < process; ++i) {
+        int initialValue = 1;
+        std::string name = "Process_ID_" + std::to_string(i);
+        sem_unlink(name.c_str());
+        // Create semaphore with unique name
+        sem_t *ss = sem_open(name.c_str(), O_CREAT | O_EXCL, 0644, initialValue);
+        if (ss == SEM_FAILED) {
+            perror("sem_open");
+            // Handle semaphore creation failure
+            // You might want to add error handling or exit the program
+        } else {
+            // Semaphore created successfully, add to vector
+            printf("SUCCESS");
+            processSemaphore.push_back(ss);
+        }
     }
 }
-
 
 
 int main(){
@@ -386,7 +395,9 @@ int main(){
     read_resources();
     resources_to_semaphores();
     print_read_text();
+    printf("THe number of proces are %d\n", process);
     process_semaphores();
+    printf("The size of processSemaphore is  %ld", processSemaphore.size());
 
     const char* SHARED_MEMORY_NAME = "/my_shared_memory";
     int shm_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
@@ -513,7 +524,35 @@ int main(){
                     int currentIndex = select_process2.second.second;
                     last_process = currentIndex;
                     main_process_in_bankers_algo = currentIndex;
-                    sem_post(processSemaphore[ID]);
+                    sem_post(processSemaphore[currentIndex]);
+                    std::vector<int> receivedData(resources);
+                    read(fd1[0], receivedData.data(), resources * sizeof(int));
+                    printf("The received request is\n");
+                    for(int i=0; i<resources; i++){
+                        printf("%d ", receivedData[i]);
+                    }
+                    printf("\n");
+                    int request_success=1;
+                    write(fd5[1], &request_success, sizeof(int));
+                    int process_ended=0;
+                    read(fd2[0],  &process_ended, sizeof(int));
+                    if(process_ended == 1){
+                        main_process_in_bankers_algo=-1;
+                        endcount++;
+                    }
+                    else{
+                        int relative_time, computation;
+                        read(fd3[0],  &relative_time, sizeof(int));
+                        read(fd4[0],  &computation, sizeof(int));
+                        pq.push({deadline[computation], {computation-computation_time[computation], computation}});
+                    }
+                }
+                else{
+                    int currentIndex = select_process.second.second;
+                    last_process = currentIndex;
+                    main_process_in_bankers_algo = currentIndex;
+                    fflush(stdout);
+                    sem_post(processSemaphore[currentIndex]);
                     std::vector<int> receivedData(resources);
                     read(fd1[0], receivedData.data(), resources * sizeof(int));
                     printf("The received request is\n");
@@ -560,7 +599,7 @@ int main(){
                 write(fd2[1],  &process_ended, sizeof(int));
                 write(fd3[1],  &relative_time, sizeof(int));
                 write(fd4[1],  &computationTime1, sizeof(int));
-                sem_wait(&processSemaphore[ID]);
+                sem_wait(processSemaphore[ID]);
                 read(fd1[1], processInstructions[ID].Ins[current_instruction].second.data(), resources * sizeof(int));
                 int request_success=0;
                 read(fd5[0], &request_success, sizeof(int));
