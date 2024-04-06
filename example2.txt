@@ -1,0 +1,5 @@
+R1: hotel: Hilton, Marriott, Omni, Intercontinental, Westin, Sheraton
+R2: fruit: orange, mango, pear, apple, lemon, banana, watermelon, guava
+R3: car: Ford, Mercedes, BMW, Chrysler, Volvo, Porsche, Ferrari
+R4: tool: screwdriver, drill, wrench, plier, hammer
+R5: vegetable: lettuce, celery, broccoli, tomato, spinach, carrot, potato, onion
