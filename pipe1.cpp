@@ -1,24 +1,20 @@
+#include <iostream>
+#include <sys/types.h>
+#include <sys/wait.h> 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <iostream>
-#include <string>
-#include <sstream>
 #include <fstream>
+#include <string>
+#include <string.h>
+#include <sstream>
 #include <chrono>
 #include <vector>
-#include <queue>
 #include <algorithm>
-#include <fcntl.h> 
 #include <semaphore.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <cstdlib>
-#include <cstring>
+#include <queue>
+
+
 
 
 int resources, process;
@@ -27,7 +23,7 @@ int avaliable[100];
 int deadline[100];
 int computation_time[100];
 bool done[100];
-int endcount;
+int processEnded;
 
 
 
@@ -54,11 +50,10 @@ struct process{
 std::vector<struct Instructions> processInstructions; 
 std::vector<int> index_of_last_request_yet_to_be_processed;
 
-std::vector<std::vector<std::string> > resourceList;
-std::vector<std::vector<sem_t *>> resourceListSemaphore;
-std::vector<std::vector<int>> resourceListCheck;
+std::vector< std::vector<std::string> > resourceList;
+std::vector< std::vector< std::pair< sem_t, std::string> > > resourceListSemaphore;
 
-std::vector<sem_t*> processSemaphore;
+std::vector<sem_t> processSemaphore;
 
 
 void read_text(){
@@ -353,15 +348,10 @@ void print_read_text(){
 
 void resources_to_semaphores(){
     for(auto r: resourceList){
-        std::vector<sem_t*> t;
+        std::vector<std::pair<sem_t, std::string>> t;
         for(std::string item: r){
-            sem_unlink(item.c_str());
-            int value=0;
-            sem_t *ss = sem_open(item.c_str(), O_CREAT, 0660, value);
-            if(ss == SEM_FAILED){
-                perror(item.c_str());
-                exit(EXIT_FAILURE);
-            }
+            std:: pair<sem_t, std::string> ss; 
+            sem_init(&(ss.first), process, 1);
             t.push_back(ss);
         }
         resourceListSemaphore.push_back(t);
@@ -370,9 +360,8 @@ void resources_to_semaphores(){
 
 void process_semaphores(){
     for(int i=0; i<process; i++){
-        int value=0;
-        std::string name = "Process_ID_"+std::to_string(i);
-        sem_t *ss = sem_open(name.c_str(), O_CREAT, 0660, value);
+        sem_t semaphore;
+        sem_init(&semaphore, 1, 0);
         processSemaphore.push_back(semaphore);
     }
 }
@@ -386,16 +375,16 @@ int main(){
     read_resources();
     resources_to_semaphores();
     print_read_text();
-    process_semaphores();
 
-    const char* SHARED_MEMORY_NAME = "/my_shared_memory";
-    int shm_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
-    ftruncate(shm_fd, sizeof(int) * resources);
-    int* shared_numbers = static_cast<int*>(mmap(NULL, sizeof(int) * resources, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0));
 
-    for (int i = 0; i < resources; ++i) {
-        shared_numbers[i] = avaliable[i];   // Set elements to avaliable
+
+
+
+
+    for(int i=0; i<process; i++){
+        index_of_last_request_yet_to_be_processed.push_back(0);
     }
+
 
 
     // {Earliest Deadline, {-longestJobFirst, processID}}
@@ -403,48 +392,6 @@ int main(){
         std::vector<std::pair<int, std::pair<int, int>>>, 
         std::greater<std::pair<int, std::pair<int, int>>> 
     > pq;
-
-
-
-
-/*
-    pipes
-    fd1 - sends_id
-    fd2 - sends_computation_time
-    fd3 - sends_vector_request
-
-    fd1, fd2, fd3
-    parent       child
-    read   ----  write
-
-    fd4 - sends_id
-    fd5 - sends request approval/rejection
-    fd6 - sends_index_of_allocated_resources
-    child        parent
-    read   ----  write
-
-*/
-    int fd1[2], fd2[2], fd3[2], fd4[2], fd5[2], fd6[2]; 
-    if(pipe(fd1) == -1){
-        printf("Error in making a pipe\n");
-    }
-    if(pipe(fd2) == -1){
-        printf("Error in making a pipe\n");
-    }
-    if(pipe(fd3) == -1){
-        printf("Error in making a pipe\n");
-    }
-    if(pipe(fd4) == -1){
-        printf("Error in making a pipe\n");
-    }
-    if(pipe(fd5) == -1){
-        printf("Error in making a pipe\n");
-    }
-    if(pipe(fd6) == -1){
-        printf("Error in making a pipe\n");
-    }
-
-
 
 
     // computation_time = number of request and release 
@@ -479,179 +426,39 @@ int main(){
         }
     }
 
-    if(pid != 0 ){
-        close(fd1[0]);
-        close(fd2[0]);
-        close(fd3[0]);
-        close(fd4[0]);
-        close(fd5[1]);
-    }
-    else{
-        close(fd1[1]);
-        close(fd2[1]);
-        close(fd3[1]);
-        close(fd4[1]);
-        close(fd5[0]);
-    }
-
     if(pid != 0){
+        process_semaphores();
         for(int id=0; id<process; id++){
             pq.push({deadline[id], {-computation_time[id], id}});
         }
-        endcount = 0;
-        int last_process = -1;
-        int main_process_in_bankers_algo =-1;
-        
-        while (endcount < process){
-            if(main_process_in_bankers_algo == -1){
-                auto select_process = pq.top();
-                pq.pop();
-                if(select_process.second.second == last_process){
-                    auto select_process2 = pq.top();
-                    pq.pop();
-                    pq.push(select_process);
-                    int currentIndex = select_process2.second.second;
-                    last_process = currentIndex;
-                    main_process_in_bankers_algo = currentIndex;
-                    sem_post(processSemaphore[ID]);
-                    std::vector<int> receivedData(resources);
-                    read(fd1[0], receivedData.data(), resources * sizeof(int));
-                    printf("The received request is\n");
-                    for(int i=0; i<resources; i++){
-                        printf("%d ", receivedData[i]);
-                    }
-                    printf("\n");
-                    int request_success=1;
-                    write(fd5[1], &request_success, sizeof(int));
-                    int process_ended=0;
-                    read(fd2[0],  &process_ended, sizeof(int));
-                    if(process_ended == 1){
-                        main_process_in_bankers_algo=-1;
-                        endcount++;
-                    }
-                    else{
-                        int relative_time, computation;
-                        read(fd3[0],  &relative_time, sizeof(int));
-                        read(fd4[0],  &computation, sizeof(int));
-                        pq.push({deadline[computation], {computation-computation_time[computation], computation}});
-                    }
-                }
-            }
-            else{
-
-            }   
+        processEnded = 0;
+        int last_requested_process = -1;
+        while (processEnded < process){
+            
+            
+            
+            
+            
+            
+            
+            
+            
         }
     }
     else{
         int current_instruction=0;
-        std::vector<std::vector<std::string>> master_string;
-        std::vector<std::vector<sem_t *>> master_sem_t;
-        for(int i=0; i<resources; i++){
-            std::vector<std::string> t;
-            master_string.push_back(t);
-        }
-        int relative_time=0;
-        int computationTime1=0;
         while(current_instruction < processInstructions[ID].Ins.size()){
+            //request
             if(processInstructions[ID].Ins[current_instruction].first == 1){
-                //request
                 //Send Request
-                int process_ended=0;
-                write(fd2[1],  &process_ended, sizeof(int));
-                write(fd3[1],  &relative_time, sizeof(int));
-                write(fd4[1],  &computationTime1, sizeof(int));
                 sem_wait(&processSemaphore[ID]);
-                read(fd1[1], processInstructions[ID].Ins[current_instruction].second.data(), resources * sizeof(int));
-                int request_success=0;
-                read(fd5[0], &request_success, sizeof(int));
-                if(request_success){
-                    for(int i=0; i<resources; i++){
-                        int accquire_num = processInstructions[ID].Ins[current_instruction].second[i];
-                        while(accquire_num>0){
-                            int j=0;
-                            int sval;
-                            sem_t *ss=resourceListSemaphore[i][j];
-                            sem_getvalue(ss, &sval);
-                            if(sval>0){
-                                sem_wait(ss);
-                                master_sem_t[i].push_back(ss);
-                                master_string[i].push_back(resourceList[i][j]);
-                                j++;
-                                accquire_num--;
-                            }
-                            else{
-                                j++;
-                            }
-                        }
-                    }
-                }
-                else{
-                    current_instruction--;
-                }
                 //If request Successful, move along
                 //Else current_instruction, continue
             }
-            else if(processInstructions[ID].Ins[current_instruction].first == 2){
-                //release
-                for(int i=0; i<resources; i++){
-                    int release_num = processInstructions[ID].Ins[current_instruction].second[i];
-                    for(int j=0; j<release_num; j++){
-                        sem_t * ss = master_sem_t[i].back();
-                        sem_post(ss);
-                        master_sem_t[i].pop_back();
-                        master_string[i].pop_back();
-                    }
-                    master_sem_t[i];
-                }
-                for(int i=0; i<resources; i++){
-                    shared_numbers[i]+=processInstructions[ID].Ins[current_instruction].second[i];
-                }
-            }
-            else if(processInstructions[ID].Ins[current_instruction].first == 3){
-                //calculate
-                computationTime1+=processInstructions[ID].Ins[current_instruction].second[0];
-            }
-            else if(processInstructions[ID].Ins[current_instruction].first == 4){
-                //use_resorusces
-                computationTime1+=processInstructions[ID].Ins[current_instruction].second[0];
-            }
-            else if(processInstructions[ID].Ins[current_instruction].first == 5){
-                printf("The master_string is \n");
-                for(auto x: master_string){
-                    for(auto y: x){
-                        printf("%s, ", y.c_str());
-                    }
-                }
-                printf("\n");
-                fflush(stdout);
-                //print_recouses_used
-            }
-            else if(processInstructions[ID].Ins[current_instruction].first == 6){
-                //end
-                for(int i=0; i<resources; i++){
-                    int release_num = processInstructions[ID].Ins[current_instruction].second[i];
-                    int size = master_sem_t[i].size();
-                    for(int j=0; j<size; j++){
-                        sem_t * ss = master_sem_t[i].back();
-                        sem_post(ss);
-                        master_sem_t[i].pop_back();
-                        master_string[i].pop_back();
-                    }
-                    master_sem_t[i];
-                }
-                for(int i=0; i<resources; i++){
-                    shared_numbers[i]+=processInstructions[ID].Ins[current_instruction].second[i];
-                }
-                int process_ended=1;
-                write(fd2[1],  &process_ended, sizeof(int));
-            }
             else{
-                printf("Error in the child process\n");
+                
             }
-            current_instruction++;
         }
     }
-    munmap(shared_numbers, sizeof(int) * resources);
-    shm_unlink(SHARED_MEMORY_NAME);
     return 0;
 }

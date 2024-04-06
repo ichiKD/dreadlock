@@ -121,3 +121,27 @@ def process():
             send_ended
         else:
             do_operation()
+
+
+# struct process{
+#     int id;
+#     vector<vector<int>> index_to_accquired_resources;
+# };
+# vector<struct Instructions> processInstructions; 
+# vector<int> index_of_last_request_yet_to_be_processed;
+# vector<vector<string> > resourceList;
+# vector<vector<sem_t *>> resourceListSemaphore;
+# vector<sem_t> processSemaphore;
+
+
+
+
+
+
+
+
+
+
+
+
+
