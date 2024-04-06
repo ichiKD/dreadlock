@@ -1,20 +1,24 @@
-#include <iostream>
-#include <sys/types.h>
-#include <sys/wait.h> 
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fstream>
+#include <iostream>
 #include <string>
-#include <string.h>
 #include <sstream>
+#include <fstream>
 #include <chrono>
 #include <vector>
-#include <algorithm>
-#include <semaphore.h>
 #include <queue>
-
-
+#include <algorithm>
+#include <fcntl.h> 
+#include <semaphore.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <cstdlib>
+#include <cstring>
 
 
 int resources, process;
@@ -50,8 +54,8 @@ struct process{
 std::vector<struct Instructions> processInstructions; 
 std::vector<int> index_of_last_request_yet_to_be_processed;
 
-std::vector< std::vector<std::string> > resourceList;
-std::vector< std::vector< std::pair< sem_t, std::string> > > resourceListSemaphore;
+std::vector<std::vector<std::string> > resourceList;
+std::vector<std::vector<sem_t *>> resourceListSemaphore;
 
 std::vector<sem_t> processSemaphore;
 
@@ -348,10 +352,15 @@ void print_read_text(){
 
 void resources_to_semaphores(){
     for(auto r: resourceList){
-        std::vector<std::pair<sem_t, std::string>> t;
+        std::vector<sem_t*> t;
         for(std::string item: r){
-            std:: pair<sem_t, std::string> ss; 
-            sem_init(&(ss.first), process, 1);
+            sem_unlink(item.c_str());
+            int value=0;
+            sem_t *ss = sem_open(item.c_str(), O_CREAT, 0660, value);
+            if(ss == SEM_FAILED){
+                perror(item.c_str());
+                exit(EXIT_FAILURE);
+            }
             t.push_back(ss);
         }
         resourceListSemaphore.push_back(t);
@@ -375,16 +384,16 @@ int main(){
     read_resources();
     resources_to_semaphores();
     print_read_text();
+    
 
+    const char* SHARED_MEMORY_NAME = "/my_shared_memory";
+    int shm_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
+    ftruncate(shm_fd, sizeof(int) * resources);
+    int* shared_numbers = static_cast<int*>(mmap(NULL, sizeof(int) * resources, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0));
 
-
-
-
-
-    for(int i=0; i<process; i++){
-        index_of_last_request_yet_to_be_processed.push_back(0);
+    for (int i = 0; i < resources; ++i) {
+        shared_numbers[i] = avaliable[i];   // Set elements to avaliable
     }
-
 
 
     // {Earliest Deadline, {-longestJobFirst, processID}}
@@ -488,9 +497,18 @@ int main(){
     }
     else{
         int current_instruction=0;
+        std::vector<std::vector<std::string>> master_string;
+        std::vector<std::vector<sem_t *>> master_sem_t;
+        for(int i=0; i<resources; i++){
+            std::vector<std::string> t;
+            master_string.push_back(t);
+        }
+        int time1=0;
+        int computationTime1=0;
+
         while(current_instruction < processInstructions[ID].Ins.size()){
-            //request
             if(processInstructions[ID].Ins[current_instruction].first == 1){
+                //request
                 //Send Request
                 sem_wait(&processSemaphore[ID]);
                 bool request_success=0;
@@ -504,6 +522,9 @@ int main(){
                 //Else current_instruction, continue
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 2){
+                for(int i=0; i<resources; i++){
+                    
+                }
                 //release
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 3){
@@ -513,6 +534,13 @@ int main(){
                 //use_resorusces
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 5){
+                printf("The master_string is \n");
+                for(auto x: master_string){
+                    for(auto y: x){
+                        printf("%s, ", y.c_str());
+                    }
+                }
+                printf("\n");
                 //print_recouses_used
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 6){

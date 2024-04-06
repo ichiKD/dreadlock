@@ -1,18 +1,21 @@
-#include <iostream>
-#include <sys/types.h>
-#include <sys/wait.h> 
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fstream>
+#include <iostream>
 #include <string>
-#include <string.h>
 #include <sstream>
+#include <fstream>
 #include <chrono>
 #include <vector>
-#include <algorithm>
-#include <semaphore.h>
 #include <queue>
+#include <algorithm>
+#include <fcntl.h> 
+#include <semaphore.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 
 
@@ -348,23 +351,27 @@ void print_read_text(){
 
 void resources_to_semaphores(){
     for(auto r: resourceList){
-        std::vector<std::pair<sem_t, std::string>> t;
+        std::vector<*sem_t> t;
         for(std::string item: r){
-            std:: pair<sem_t, std::string> ss; 
-            sem_init(&(ss.first), process, 1);
+            sem_unlink(item.c_str())
+            int value=1;
+            sem_t *semaphore = sem_open(item.c_str(), O_CREAT, 0660, value) ;
+
+
             t.push_back(ss);
         }
         resourceListSemaphore.push_back(t);
     }
 }
 
-void process_semaphores(){
-    for(int i=0; i<process; i++){
-        sem_t semaphore;
-        sem_init(&semaphore, 1, 0);
-        processSemaphore.push_back(semaphore);
-    }
-}
+
+// void process_semaphores(){
+//     for(int i=0; i<process; i++){
+//         sem_t semaphore;
+//         sem_init(&semaphore, 1, 0);
+//         processSemaphore.push_back(semaphore);
+//     }
+// }
 
 
 
