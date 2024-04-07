@@ -353,8 +353,7 @@ void resources_to_semaphores(){
         std::vector<sem_t*> t;
         for(std::string item: r){
             sem_unlink(item.c_str());
-            int value=0;
-            sem_t *ss = sem_open(item.c_str(), O_CREAT, 0660, value);
+            sem_t *ss = sem_open(item.c_str(), O_CREAT, 0660, 0);
             if(ss == SEM_FAILED){
                 perror(item.c_str());
                 exit(EXIT_FAILURE);
@@ -367,11 +366,10 @@ void resources_to_semaphores(){
 
 void process_semaphores() {
     for (int i = 0; i < process; ++i) {
-        int initialValue = 0;
         std::string name = "Process_ID_" + std::to_string(i);
         sem_unlink(name.c_str());
         // Create semaphore with unique name
-        sem_t *ss = sem_open(name.c_str(), O_CREAT | O_EXCL, 0644, initialValue);
+        sem_t *ss = sem_open(name.c_str(), O_CREAT | O_EXCL, 0644, 0);
         if (ss == SEM_FAILED) {
             perror("sem_open");
             // Handle semaphore creation failure
@@ -512,86 +510,9 @@ int main(){
     if (pid < 0) {
         perror("fork");
         exit(EXIT_FAILURE);
-    } else if (ID == 0) {
-        // Child process
-        close(fd1[0]); // Close unused read end of the pipe
-        // Generate a random integer
-
-        int random_int = 69;
-        sem_wait(sem); 
-        std::vector<int> a ;
-        for(int i=0;i<10; i++){
-            a.push_back(i);
-        }
-        write(fd1[1], a.data(), sizeof(int)*10);
-        int sval;
-        sem_getvalue(sem, &sval);
-        printf("Semavalue: %d\n", sval);
-        
-        
-        // close(fd1[1]); // Close write end of the pipe in child
-
-        exit(EXIT_SUCCESS);
     } 
-    else if(ID==process){
-        // Parent process
-        close(fd1[1]); // Close unused write end of the pipe
-        int sval;
-        sem_getvalue(sem, &sval);
-        printf("Semavalue: %d\n", sval);
 
 
-
-        // ***************
-        // ***************
-        // ***************
-        // ***************
-        // ***************
-        int temp_val;
-        scanf("%d", &temp_val);
-        if(temp_val == 1){
-            sem_post(sem);
-        }
-        else{
-            sem_post(sem2);
-        }
-        std::vector<int> b(10) ;
-        int received_int;
-        read(fd1[0], b.data(), sizeof(int)*10);
-        printf("Received vector from child process:\n");
-        for(int x: b){
-            printf("%d ", x);
-        }
-        printf("\n");
-        if(temp_val == 1){
-            sem_post(sem2);
-        }
-        else{
-            sem_post(sem);
-        }
-        // close(fd1[0]); 
-        wait(NULL);
-        // sem_destroy(sem); 
-    }
-    else{
-        // Child process
-        close(fd1[0]); // Close unused read end of the pipe
-        // Generate a random integer
-        int random_int = 96;
-        sem_wait(sem2); 
-        std::vector<int> a ;
-        for(int i=0;i<10; i++){
-            a.push_back(i*10);
-        }
-        write(fd1[1], a.data(), sizeof(int)*10);
-        int sval;
-        sem_getvalue(sem2, &sval);
-        printf("Semavalue: %d\n", sval);
-        
-        
-        // close(fd1[1]); // Close write end of the pipe in child
-
-    }
 
 
     if(ID==process){
@@ -617,12 +538,57 @@ int main(){
         // }
         // fflush(stdout);
         while (endcount < process){
-            /* code */
+            if(main_process_in_bankers_algo == -1){
+                auto current= pq.top();
+                pq.pop();
+                int idx =current.second.second;
+                sem_post(processSemaphore[current.second.second]);
+                std::vector<int> b(resources) ;
+                read(fd1[0], b.data(), sizeof(int)*resources);
+                printf("Received vector from child process%d:\n", idx);
+
+                for(int x: b){
+                    printf("%d ", x);
+                }
+                printf("\n");
+                fflush(stdout);
+
+            }
         }
-        
     }
     else{
-        
+        printf("The child process id is %d\n", ID);
+        int current_instruction=0;
+        std::vector<std::vector<std::string>> master_string;
+        std::vector<std::vector<sem_t *>> master_sem_t;
+        for(int i=0; i<resources; i++){
+            std::vector<std::string> t;
+            master_string.push_back(t);
+        }
+        int relative_time=0;
+        int computationTime1=0;
+        int first_request =1;
+        while(current_instruction < processInstructions[ID].Ins.size()){
+            printf("Process%d LOOP\n", ID);
+            fflush(stdout);
+            if(processInstructions[ID].Ins[current_instruction].first == 1){
+                sem_wait(processSemaphore[ID]); 
+                std::vector<int> a = processInstructions[ID].Ins[current_instruction].second;
+                printf("the requet vector is:\n");
+                for(auto x: a){
+                    printf("%d ", x);
+                }
+                printf("\n");
+                fflush(stdout);
+                write(fd1[1], a.data(), sizeof(int)*resources);
+            }
+            else{
+                ;
+            }
+            current_instruction++;
+        }
+        printf("Process%d ENDED\n", ID);
+        fflush(stdout);
     }
 
 
