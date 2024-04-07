@@ -409,6 +409,32 @@ int main(){
         shared_numbers[i] = avaliable[i];   // Set elements to avaliable
     }
 
+    // {Earliest Deadline, {-longestJobFirst, processID}}
+    std::priority_queue<std::pair<int, std::pair<int, int>>, 
+        std::vector<std::pair<int, std::pair<int, int>>>, 
+        std::greater<std::pair<int, std::pair<int, int>>> 
+    > pq;
+
+
+
+
+/*
+    pipes
+    fd1 - sends_id
+    fd2 - sends_computation_time
+    fd3 - sends_vector_request
+
+    fd1, fd2, fd3
+    parent       child
+    read   ----  write
+
+    fd4 - sends_id
+    fd5 - sends request approval/rejection
+    fd6 - sends_index_of_allocated_resources
+    child        parent
+    read   ----  write
+
+*/
 
 
     int fd1[2], fd2[2], fd3[2], fd4[2], fd5[2], fd6[2]; 
@@ -537,10 +563,15 @@ int main(){
             printf("%d ", x);
         }
         printf("\n");
+        if(temp_val == 1){
+            sem_post(sem2);
+        }
+        else{
+            sem_post(sem);
+        }
         // close(fd1[0]); 
         wait(NULL);
         // sem_destroy(sem); 
-        exit(EXIT_SUCCESS);
     }
     else{
         // Child process
@@ -560,20 +591,42 @@ int main(){
         
         // close(fd1[1]); // Close write end of the pipe in child
 
-        exit(EXIT_SUCCESS);
     }
 
 
-    if(pid != 0){
-
+    if(ID==process){
+        printf("The number of process are %d\n", process);
+        fflush(stdout);
+        for(int id=0; id<process; id++){
+            pq.push({deadline[id], {-computation_time[id], id}});
+        }
+        endcount = 0;
+        int last_process = -1;
+        int main_process_in_bankers_algo =-1;
+        auto pq_temp=pq;
+        while(!pq_temp.empty()){
+            auto y = pq_temp.top();
+            pq_temp.pop();
+            printf("%d %d %d\n", y.first, y.second.first, y.second.second);
+        }
+        fflush(stdout);
+        // while(!pq.empty()){
+        //     auto y = pq.top();
+        //     pq.pop();
+        //     printf("%d %d %d\n", y.first, y.second.first, y.second.second);
+        // }
+        // fflush(stdout);
+        while (endcount < process){
+            /* code */
+        }
+        
     }
     else{
         
     }
 
 
-
-
+    
 
 
     while (wait(NULL) != -1){
