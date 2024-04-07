@@ -597,6 +597,7 @@ int main(){
                     fflush(stdout);
                     int request_success=1;
                     write(fd5[1], &request_success, sizeof(int));
+                    main_process_in_bankers_algo=idx;
                     last_process=idx;
                     if(request_success){
                         int process_ended=0;
@@ -699,7 +700,6 @@ int main(){
                         int process_ended=0;
                         read(fd2[0],  &process_ended, sizeof(int));
                         if(process_ended == 1){
-                            main_process_in_bankers_algo=-1;
                             endcount++;
                         }
                         else{
