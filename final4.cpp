@@ -58,6 +58,15 @@ std::vector<std::vector<int>> resourceListCheck;
 std::vector<sem_t*> processSemaphore;
 sem_t* schedulerSemaphore;
 
+
+using MyPriorityQueue = std::priority_queue<
+    std::pair<int, std::pair<int, int>>,
+    std::vector<std::pair<int, std::pair<int, int>>>,
+    std::greater<std::pair<int, std::pair<int, int>>>
+>;
+
+
+
 void read_text(){
     std::ifstream file("example.txt"); // Open the file
 
@@ -408,10 +417,7 @@ int main(){
     }
 
     // {Earliest Deadline, {-longestJobFirst, processID}}
-    std::priority_queue<std::pair<int, std::pair<int, int>>, 
-        std::vector<std::pair<int, std::pair<int, int>>>, 
-        std::greater<std::pair<int, std::pair<int, int>>> 
-    > pq;
+    MyPriorityQueue pq;
 
 
 
@@ -538,9 +544,9 @@ int main(){
         // }
         // fflush(stdout);
         while (endcount < process){
-            auto current= pq.top();
-            pq.pop();
             if(main_process_in_bankers_algo == -1){
+                auto current= pq.top();
+                pq.pop();
                 int idx =current.second.second;
                 if(idx != last_process){
                     sem_post(processSemaphore[idx]);
@@ -591,7 +597,103 @@ int main(){
                     fflush(stdout);
                     int request_success=1;
                     write(fd5[1], &request_success, sizeof(int));
-                    main_process_in_bankers_algo=idx;
+                    last_process=idx;
+                    if(request_success){
+                        int process_ended=0;
+                        read(fd2[0],  &process_ended, sizeof(int));
+                        if(process_ended == 1){
+                            main_process_in_bankers_algo=-1;
+                            endcount++;
+                        }
+                        else{
+                            int relative_time, computation;
+                            read(fd3[0],  &relative_time, sizeof(int));
+                            read(fd4[0],  &computation, sizeof(int));
+                            pq.push({deadline[idx], {computation-computation_time[idx], idx}});
+                        }
+                    }
+                    else{
+                        pq.push(current);
+                    }
+                }
+            }
+            else{
+                if(main_process_in_bankers_algo != last_process){
+                    MyPriorityQueue pq_temp1 =pq;
+                    auto current = pq_temp1.top(); // Here main_process_temp != main_process
+                    pq_temp1.pop();
+                    while(!pq_temp1.empty()){
+                        if(current.second.second == main_process_in_bankers_algo){
+                            break;
+                        }
+                        else{
+                            current = pq_temp1.top();
+                            pq_temp1.pop();
+                        }
+                    }
+                    MyPriorityQueue pq_temp2;
+                    while (!pq.empty()){
+                        auto temp = pq.top();
+                        pq.pop();
+                        if(temp != current){
+                            pq_temp2.push(temp);
+                        }
+                    }
+                    pq=pq_temp2;
+
+                    int idx =current.second.second;
+                    sem_post(processSemaphore[idx]);
+                    std::vector<int> b(resources) ;
+                    read(fd1[0], b.data(), sizeof(int)*resources);
+                    printf("Received vector from child process%d:\n", idx);
+                    for(int x: b){
+                        printf("%d ", x);
+                    }
+                    printf("\n");
+                    fflush(stdout);
+                    int request_success=1;
+                    write(fd5[1], &request_success, sizeof(int));
+                    last_process=idx;
+                    if(request_success){
+                        int process_ended=0;
+                        read(fd2[0],  &process_ended, sizeof(int));
+                        if(process_ended == 1){
+                            main_process_in_bankers_algo=-1;
+                            endcount++;
+                        }
+                        else{
+                            int relative_time, computation;
+                            read(fd3[0],  &relative_time, sizeof(int));
+                            read(fd4[0],  &computation, sizeof(int));
+                            pq.push({deadline[idx], {computation-computation_time[idx], idx}});
+                        }
+                    }
+                    else{
+                        pq.push(current);
+                    }
+                }
+                else{
+                    auto current= pq.top();
+                    pq.pop();
+                    int idx =current.second.second;
+                    if(idx == last_process){
+                        auto current2= pq.top();
+                        pq.pop();
+                        pq.push(current);
+                        current= current2;
+                        idx =current2.second.second;
+                    }
+                    sem_post(processSemaphore[idx]);
+                    std::vector<int> b(resources) ;
+                    read(fd1[0], b.data(), sizeof(int)*resources);
+                    printf("Received vector from child process%d:\n", idx);
+                    for(int x: b){
+                        printf("%d ", x);
+                    }
+                    printf("\n");
+                    fflush(stdout);
+                    int request_success=1;
+                    write(fd5[1], &request_success, sizeof(int));
                     last_process=idx;
                     if(request_success){
                         int process_ended=0;
