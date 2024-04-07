@@ -20,7 +20,6 @@
 
 int resources, process;
 int maximum[100][100];
-int allocated[100][100];
 int avaliable[100];
 int deadline[100];
 int computation_time[100];
@@ -408,24 +407,18 @@ int main(){
     process_semaphores();
     printf("The size of processSemaphore is  %ld", processSemaphore.size());
     fflush(stdout);
-
-
-
     const char* SHARED_MEMORY_NAME = "/my_shared_memory";
     int shm_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
     ftruncate(shm_fd, sizeof(int) * resources);
     int* shared_numbers = static_cast<int*>(mmap(NULL, sizeof(int) * resources, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0));
+
     for (int i = 0; i < resources; ++i) {
         shared_numbers[i] = avaliable[i];   // Set elements to avaliable
     }
 
     // {Earliest Deadline, {-longestJobFirst, processID}}
     MyPriorityQueue pq;
-    for(int i=0; i<process; i++){
-        for(int j=0; j<resources; i++){
-            allocated[i][j]=0;
-        }
-    }
+
 
 
 
@@ -571,8 +564,7 @@ int main(){
                     last_process=idx;
                     if(request_success){
                         for(int i =0; i<resources; i++){
-                            shared_numbers[i]  =  shared_numbers[i] -b[i];
-                            allocated[idx][i] += b[i]; 
+                            shared_numbers[i] =shared_numbers[i] -b[i];
                         }
                         int process_ended=0;
                         read(fd2[0],  &process_ended, sizeof(int));
@@ -618,8 +610,7 @@ int main(){
                     last_process=idx;
                     if(request_success){
                         for(int i =0; i<resources; i++){
-                            shared_numbers[i]  = shared_numbers[i] -b[i];
-                            allocated[idx][i] += b[i]; 
+                            shared_numbers[i] =shared_numbers[i] -b[i];
                         }
                         int process_ended=0;
                         read(fd2[0],  &process_ended, sizeof(int));
@@ -734,8 +725,7 @@ int main(){
                     last_process=idx;
                     if(request_success){
                         for(int i =0; i<resources; i++){
-                            shared_numbers[i]  = shared_numbers[i] -b[i];
-                            allocated[idx][i] += b[i]; 
+                            shared_numbers[i] =shared_numbers[i] -b[i];
                         }
                         int process_ended=0;
                         read(fd2[0],  &process_ended, sizeof(int));
