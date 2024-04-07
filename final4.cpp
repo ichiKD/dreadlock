@@ -441,33 +441,35 @@ int main(){
 */
 
 
-    int fd1[2], fd2[2], fd3[2], fd4[2], fd5[2], fd6[2]; 
+    int fd1[100][2], fd2[100][2], fd3[100][2], fd4[100][2], fd5[100][2], fd6[100][2]; 
+    for(int i=0; i<process; i++){
+        if(pipe(fd1[i]) == -1){
+            printf("Error in making a pipe\n");
+            fflush(stdout);
+        }
+        if(pipe(fd2[i]) == -1){
+            printf("Error in making a pipe\n");
+            fflush(stdout);
+        }
+        if(pipe(fd3[i]) == -1){
+            printf("Error in making a pipe\n");
+            fflush(stdout);
+        }
+        if(pipe(fd4[i]) == -1){
+            printf("Error in making a pipe\n");
+            fflush(stdout);
+        }
+        if(pipe(fd5[i]) == -1){
+            printf("Error in making a pipe\n");
+            fflush(stdout);
+        }
+        if(pipe(fd6[i]) == -1){
+            printf("Error in making a pipe\n");
+            fflush(stdout);
+        }
+    }
 
 
-    if(pipe(fd1) == -1){
-        printf("Error in making a pipe\n");
-        fflush(stdout);
-    }
-    if(pipe(fd2) == -1){
-        printf("Error in making a pipe\n");
-        fflush(stdout);
-    }
-    if(pipe(fd3) == -1){
-        printf("Error in making a pipe\n");
-        fflush(stdout);
-    }
-    if(pipe(fd4) == -1){
-        printf("Error in making a pipe\n");
-        fflush(stdout);
-    }
-    if(pipe(fd5) == -1){
-        printf("Error in making a pipe\n");
-        fflush(stdout);
-    }
-    if(pipe(fd6) == -1){
-        printf("Error in making a pipe\n");
-        fflush(stdout);
-    }
 
     // Semaphore initialization
     sem_unlink("ss1");
@@ -510,9 +512,9 @@ int main(){
 
 
 
-    printf("\n");
-    printf("%d %d\n", ID, process);
-    fflush(stdout);
+    // printf("\n");
+    // printf("%d %d\n", ID, process);
+    // fflush(stdout);
     if (pid < 0) {
         perror("fork");
         exit(EXIT_FAILURE);
@@ -543,6 +545,7 @@ int main(){
         //     printf("%d %d %d\n", y.first, y.second.first, y.second.second);
         // }
         // fflush(stdout);
+        sleep(5);
         while (endcount < process){
             if(main_process_in_bankers_algo == -1){
                 auto current= pq.top();
@@ -551,7 +554,7 @@ int main(){
                 if(idx != last_process){
                     sem_post(processSemaphore[idx]);
                     std::vector<int> b(resources) ;
-                    read(fd1[0], b.data(), sizeof(int)*resources);
+                    read(fd1[idx][0], b.data(), sizeof(int)*resources);
                     printf("Received vector from child process%d:\n", idx);
                     for(int x: b){
                         printf("%d ", x);
@@ -559,27 +562,27 @@ int main(){
                     printf("\n");
                     fflush(stdout);
                     int request_success=1;
-                    write(fd5[1], &request_success, sizeof(int));
+                    write(fd5[idx][1], &request_success, sizeof(int));
                     main_process_in_bankers_algo=idx;
                     last_process=idx;
                     if(request_success){
-                        for(int i =0; i<resources; i++){
-                            shared_numbers[i] =shared_numbers[i] -b[i];
-                        }
                         int process_ended=0;
-                        read(fd2[0],  &process_ended, sizeof(int));
+                        read(fd2[idx][0],  &process_ended, sizeof(int));
                         if(process_ended == 1){
                             main_process_in_bankers_algo=-1;
                             endcount++;
                         }
                         else{
                             int relative_time, computation;
-                            read(fd3[0],  &relative_time, sizeof(int));
-                            read(fd4[0],  &computation, sizeof(int));
+                            read(fd3[idx][0],  &relative_time, sizeof(int));
+                            read(fd4[idx][0],  &computation, sizeof(int));
                             pq.push({deadline[idx], {computation-computation_time[idx], idx}});
                         }
                     }
                     else{
+                        printf("Case:1\n");
+                        printf("Received request from child process%d: declined\n", idx);
+                        fflush(stdout);
                         pq.push(current);
                     }
                 }
@@ -591,7 +594,7 @@ int main(){
                     idx =current.second.second;
                     sem_post(processSemaphore[idx]);
                     std::vector<int> b(resources) ;
-                    read(fd1[0], b.data(), sizeof(int)*resources);
+                    read(fd1[idx][0], b.data(), sizeof(int)*resources);
                     printf("Received vector from child process%d:\n", idx);
                     for(int x: b){
                         printf("%d ", x);
@@ -605,27 +608,27 @@ int main(){
                             break;
                         }
                     }
-                    write(fd5[1], &request_success, sizeof(int));
+                    write(fd5[idx][1], &request_success, sizeof(int));
                     main_process_in_bankers_algo=idx;
                     last_process=idx;
                     if(request_success){
-                        for(int i =0; i<resources; i++){
-                            shared_numbers[i] =shared_numbers[i] -b[i];
-                        }
                         int process_ended=0;
-                        read(fd2[0],  &process_ended, sizeof(int));
+                        read(fd2[idx][0],  &process_ended, sizeof(int));
                         if(process_ended == 1){
                             main_process_in_bankers_algo=-1;
                             endcount++;
                         }
                         else{
                             int relative_time, computation;
-                            read(fd3[0],  &relative_time, sizeof(int));
-                            read(fd4[0],  &computation, sizeof(int));
+                            read(fd3[idx][0],  &relative_time, sizeof(int));
+                            read(fd4[idx][0],  &computation, sizeof(int));
                             pq.push({deadline[idx], {computation-computation_time[idx], idx}});
                         }
                     }
                     else{
+                        printf("Case:2\n");
+                        printf("Received request from child process%d: declined\n", idx);
+                        fflush(stdout);
                         pq.push(current);
                     }
                 }
@@ -657,7 +660,7 @@ int main(){
                     int idx =current.second.second;
                     sem_post(processSemaphore[idx]);
                     std::vector<int> b(resources) ;
-                    read(fd1[0], b.data(), sizeof(int)*resources);
+                    read(fd1[idx][0], b.data(), sizeof(int)*resources);
                     printf("Received vector from child process%d:\n", idx);
                     for(int x: b){
                         printf("%d ", x);
@@ -665,32 +668,32 @@ int main(){
                     printf("\n");
                     fflush(stdout);
                     int request_success=1;
-                    for(int i =0; i<resources; i++){
-                        if(b[i]>shared_numbers[i]){
+                    for(int i =0; i<resources && idx != main_process_in_bankers_algo && main_process_in_bankers_algo!=1; i++){
+                        if(maximum[main_process_in_bankers_algo][i]>shared_numbers[i]- b[i]){
                             request_success=0;
                             break;
                         }
                     }
-                    write(fd5[1], &request_success, sizeof(int));
+                    write(fd5[idx][1], &request_success, sizeof(int));
                     last_process=idx;
                     if(request_success){
-                        for(int i =0; i<resources; i++){
-                            shared_numbers[i] =shared_numbers[i] -b[i];
-                        }
                         int process_ended=0;
-                        read(fd2[0],  &process_ended, sizeof(int));
+                        read(fd2[idx][0],  &process_ended, sizeof(int));
                         if(process_ended == 1){
                             main_process_in_bankers_algo=-1;
                             endcount++;
                         }
                         else{
                             int relative_time, computation;
-                            read(fd3[0],  &relative_time, sizeof(int));
-                            read(fd4[0],  &computation, sizeof(int));
+                            read(fd3[idx][0],  &relative_time, sizeof(int));
+                            read(fd4[idx][0],  &computation, sizeof(int));
                             pq.push({deadline[idx], {computation-computation_time[idx], idx}});
                         }
                     }
                     else{
+                        printf("Case:3\n");
+                        printf("Received request from child process%d: declined\n", idx);
+                        fflush(stdout);
                         pq.push(current);
                     }
                 }
@@ -707,7 +710,7 @@ int main(){
                     }
                     sem_post(processSemaphore[idx]);
                     std::vector<int> b(resources) ;
-                    read(fd1[0], b.data(), sizeof(int)*resources);
+                    read(fd1[idx][0], b.data(), sizeof(int)*resources);
                     printf("Received vector from child process%d:\n", idx);
                     for(int x: b){
                         printf("%d ", x);
@@ -715,31 +718,31 @@ int main(){
                     printf("\n");
                     fflush(stdout);
                     int request_success=1;
-                    for(int i =0; i<resources; i++){
-                        if(b[i]>shared_numbers[i]){
+                    for(int i =0; i<resources && idx != main_process_in_bankers_algo && main_process_in_bankers_algo!=1; i++){
+                        if(maximum[main_process_in_bankers_algo][i]>shared_numbers[i]- b[i]){
                             request_success=0;
                             break;
                         }
                     }
-                    write(fd5[1], &request_success, sizeof(int));
+                    write(fd5[idx][1], &request_success, sizeof(int));
                     last_process=idx;
                     if(request_success){
-                        for(int i =0; i<resources; i++){
-                            shared_numbers[i] =shared_numbers[i] -b[i];
-                        }
                         int process_ended=0;
-                        read(fd2[0],  &process_ended, sizeof(int));
+                        read(fd2[idx][0],  &process_ended, sizeof(int));
                         if(process_ended == 1){
                             endcount++;
                         }
                         else{
                             int relative_time, computation;
-                            read(fd3[0],  &relative_time, sizeof(int));
-                            read(fd4[0],  &computation, sizeof(int));
+                            read(fd3[idx][0],  &relative_time, sizeof(int));
+                            read(fd4[idx][0],  &computation, sizeof(int));
                             pq.push({deadline[idx], {computation-computation_time[idx], idx}});
                         }
                     }
                     else{
+                        printf("Case:4\n");
+                        printf("Received request from child process%d: declined\n", idx);
+                        fflush(stdout);
                         pq.push(current);
                     }
                 }
@@ -757,35 +760,41 @@ int main(){
         }
         int relative_time=0;
         int computationTime1=0;
-        int first_request =1;
+        int first_request =0;
+        std::vector<int> allocated(resources, 0);
         while(current_instruction < processInstructions[ID].Ins.size()){
             printf("Process%d LOOP\n", ID);
             fflush(stdout);
             if(processInstructions[ID].Ins[current_instruction].first == 1){
-                if(!first_request){
+                if(first_request == 0){
                     int process_ended=0;
-                    write(fd2[1],  &process_ended, sizeof(int));
-                    write(fd3[1],  &relative_time, sizeof(int));
-                    write(fd4[1],  &computationTime1, sizeof(int));
+                    write(fd2[ID][1],  &process_ended, sizeof(int));
+                    write(fd3[ID][1],  &relative_time, sizeof(int));
+                    write(fd4[ID][1],  &computationTime1, sizeof(int));
                 }
-                first_request=0;
+                first_request++;
                 sem_wait(processSemaphore[ID]); 
                 std::vector<int> a = processInstructions[ID].Ins[current_instruction].second;
-                printf("The request vector is:\n");
+                printf("The request vector from %d is:\n", ID);
                 for(auto x: a){
                     printf("%d ", x);
                 }
                 printf("\n");
                 fflush(stdout);
-                write(fd1[1], a.data(), sizeof(int)*resources);
+                write(fd1[ID][1], a.data(), sizeof(int)*resources);
                 int request_success=0;
-                read(fd5[0], &request_success, sizeof(int));
+                read(fd5[ID][0], &request_success, sizeof(int));
                 if(request_success){
+                    for(int i=0; i<resources; i++){
+                        shared_numbers[i]-=a[i];
+                        allocated[i]+=a[i];
+                    }
                     printf("request is success\n");
                     fflush(stdout);
                     // Note: one semaphore might be needed here
                 }
                 else{
+                    first_request--;
                     current_instruction--;
                 }
             }
@@ -799,7 +808,8 @@ int main(){
                         // master_sem_t[i].pop_back();
                         // master_string[i].pop_back();
                     }
-                    shared_numbers[i]+=release_num;
+                    shared_numbers[i] += release_num;
+                    allocated[i]      -= release_num;
                 }
             }
             else{
@@ -810,7 +820,16 @@ int main(){
         printf("Process%d ENDED\n", ID);
         fflush(stdout);
         int process_ended=1;
-        write(fd2[1],  &process_ended, sizeof(int));
+        write(fd2[ID][1],  &process_ended, sizeof(int));
+        for(int i=0; i<resources; i++){
+            shared_numbers[i] +=  allocated[i];
+        }
+        printf("Shared Numbers are:\n");
+        for(int i=0; i<resources; i++){
+            printf("%d ", shared_numbers[i]);
+        }
+        printf("\n");
+        fflush(stdout);
     }
 
 
