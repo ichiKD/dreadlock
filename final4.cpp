@@ -545,7 +545,6 @@ int main(){
         //     printf("%d %d %d\n", y.first, y.second.first, y.second.second);
         // }
         // fflush(stdout);
-        sleep(5);
         while (endcount < process){
             if(main_process_in_bankers_algo == -1){
                 auto current= pq.top();
@@ -766,7 +765,7 @@ int main(){
             printf("Process%d LOOP\n", ID);
             fflush(stdout);
             if(processInstructions[ID].Ins[current_instruction].first == 1){
-                if(first_request == 0){
+                if(first_request != 0){
                     int process_ended=0;
                     write(fd2[ID][1],  &process_ended, sizeof(int));
                     write(fd3[ID][1],  &relative_time, sizeof(int));
