@@ -538,21 +538,79 @@ int main(){
         // }
         // fflush(stdout);
         while (endcount < process){
+            auto current= pq.top();
+            pq.pop();
             if(main_process_in_bankers_algo == -1){
-                auto current= pq.top();
-                pq.pop();
                 int idx =current.second.second;
-                sem_post(processSemaphore[current.second.second]);
-                std::vector<int> b(resources) ;
-                read(fd1[0], b.data(), sizeof(int)*resources);
-                printf("Received vector from child process%d:\n", idx);
-
-                for(int x: b){
-                    printf("%d ", x);
+                if(idx != last_process){
+                    sem_post(processSemaphore[idx]);
+                    std::vector<int> b(resources) ;
+                    read(fd1[0], b.data(), sizeof(int)*resources);
+                    printf("Received vector from child process%d:\n", idx);
+                    for(int x: b){
+                        printf("%d ", x);
+                    }
+                    printf("\n");
+                    fflush(stdout);
+                    int request_success=1;
+                    write(fd5[1], &request_success, sizeof(int));
+                    main_process_in_bankers_algo=idx;
+                    last_process=idx;
+                    if(request_success){
+                        int process_ended=0;
+                        read(fd2[0],  &process_ended, sizeof(int));
+                        if(process_ended == 1){
+                            main_process_in_bankers_algo=-1;
+                            endcount++;
+                        }
+                        else{
+                            int relative_time, computation;
+                            read(fd3[0],  &relative_time, sizeof(int));
+                            read(fd4[0],  &computation, sizeof(int));
+                            pq.push({deadline[idx], {computation-computation_time[idx], idx}});
+                        }
+                    }
+                    else{
+                        pq.push(current);
+                    }
                 }
-                printf("\n");
-                fflush(stdout);
-
+                else{
+                    auto current2=current;
+                    current= pq.top();
+                    pq.pop();
+                    pq.push(current2);
+                    idx =current.second.second;
+                    sem_post(processSemaphore[idx]);
+                    std::vector<int> b(resources) ;
+                    read(fd1[0], b.data(), sizeof(int)*resources);
+                    printf("Received vector from child process%d:\n", idx);
+                    for(int x: b){
+                        printf("%d ", x);
+                    }
+                    printf("\n");
+                    fflush(stdout);
+                    int request_success=1;
+                    write(fd5[1], &request_success, sizeof(int));
+                    main_process_in_bankers_algo=idx;
+                    last_process=idx;
+                    if(request_success){
+                        int process_ended=0;
+                        read(fd2[0],  &process_ended, sizeof(int));
+                        if(process_ended == 1){
+                            main_process_in_bankers_algo=-1;
+                            endcount++;
+                        }
+                        else{
+                            int relative_time, computation;
+                            read(fd3[0],  &relative_time, sizeof(int));
+                            read(fd4[0],  &computation, sizeof(int));
+                            pq.push({deadline[idx], {computation-computation_time[idx], idx}});
+                        }
+                    }
+                    else{
+                        pq.push(current);
+                    }
+                }
             }
         }
     }
@@ -572,15 +630,32 @@ int main(){
             printf("Process%d LOOP\n", ID);
             fflush(stdout);
             if(processInstructions[ID].Ins[current_instruction].first == 1){
+                if(!first_request){
+                    int process_ended=0;
+                    write(fd2[1],  &process_ended, sizeof(int));
+                    write(fd3[1],  &relative_time, sizeof(int));
+                    write(fd4[1],  &computationTime1, sizeof(int));
+                }
+                first_request=0;
                 sem_wait(processSemaphore[ID]); 
                 std::vector<int> a = processInstructions[ID].Ins[current_instruction].second;
-                printf("the requet vector is:\n");
+                printf("The request vector is:\n");
                 for(auto x: a){
                     printf("%d ", x);
                 }
                 printf("\n");
                 fflush(stdout);
                 write(fd1[1], a.data(), sizeof(int)*resources);
+                int request_success=0;
+                read(fd5[0], &request_success, sizeof(int));
+                if(request_success){
+                    printf("request is success\n");
+                    fflush(stdout);
+                    // Note: one semaphore might be needed here
+                }
+                else{
+                    current_instruction--;
+                }
             }
             else{
                 ;
@@ -589,6 +664,8 @@ int main(){
         }
         printf("Process%d ENDED\n", ID);
         fflush(stdout);
+        int process_ended=1;
+        write(fd2[1],  &process_ended, sizeof(int));
     }
 
 
