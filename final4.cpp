@@ -493,7 +493,11 @@ int main(){
 
         int random_int = 69;
         sem_wait(sem); 
-        write(fd1[1], &random_int, sizeof(random_int));
+        std::vector<int> a ;
+        for(int i=0;i<10; i++){
+            a.push_back(i);
+        }
+        write(fd1[1], a.data(), sizeof(int)*10);
         int sval;
         sem_getvalue(sem, &sval);
         printf("Semavalue: %d\n", sval);
@@ -525,10 +529,14 @@ int main(){
         else{
             sem_post(sem2);
         }
-
+        std::vector<int> b(10) ;
         int received_int;
-        read(fd1[0], &received_int, sizeof(received_int));
-        printf("Received integer from child process: %d\n" ,received_int);
+        read(fd1[0], b.data(), sizeof(int)*10);
+        printf("Received vector from child process:\n");
+        for(int x: b){
+            printf("%d ", x);
+        }
+        printf("\n");
         // close(fd1[0]); 
         wait(NULL);
         // sem_destroy(sem); 
@@ -540,7 +548,11 @@ int main(){
         // Generate a random integer
         int random_int = 96;
         sem_wait(sem2); 
-        write(fd1[1], &random_int, sizeof(random_int));
+        std::vector<int> a ;
+        for(int i=0;i<10; i++){
+            a.push_back(i*10);
+        }
+        write(fd1[1], a.data(), sizeof(int)*10);
         int sval;
         sem_getvalue(sem2, &sval);
         printf("Semavalue: %d\n", sval);
@@ -550,6 +562,18 @@ int main(){
 
         exit(EXIT_SUCCESS);
     }
+
+
+    if(pid != 0){
+
+    }
+    else{
+        
+    }
+
+
+
+
 
 
     while (wait(NULL) != -1){
