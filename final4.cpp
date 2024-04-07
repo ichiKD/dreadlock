@@ -563,6 +563,9 @@ int main(){
                     main_process_in_bankers_algo=idx;
                     last_process=idx;
                     if(request_success){
+                        for(int i =0; i<resources; i++){
+                            shared_numbers[i] =shared_numbers[i] -b[i];
+                        }
                         int process_ended=0;
                         read(fd2[0],  &process_ended, sizeof(int));
                         if(process_ended == 1){
@@ -596,10 +599,19 @@ int main(){
                     printf("\n");
                     fflush(stdout);
                     int request_success=1;
+                    for(int i =0; i<resources; i++){
+                        if(b[i]>shared_numbers[i]){
+                            request_success=0;
+                            break;
+                        }
+                    }
                     write(fd5[1], &request_success, sizeof(int));
                     main_process_in_bankers_algo=idx;
                     last_process=idx;
                     if(request_success){
+                        for(int i =0; i<resources; i++){
+                            shared_numbers[i] =shared_numbers[i] -b[i];
+                        }
                         int process_ended=0;
                         read(fd2[0],  &process_ended, sizeof(int));
                         if(process_ended == 1){
@@ -653,9 +665,18 @@ int main(){
                     printf("\n");
                     fflush(stdout);
                     int request_success=1;
+                    for(int i =0; i<resources; i++){
+                        if(b[i]>shared_numbers[i]){
+                            request_success=0;
+                            break;
+                        }
+                    }
                     write(fd5[1], &request_success, sizeof(int));
                     last_process=idx;
                     if(request_success){
+                        for(int i =0; i<resources; i++){
+                            shared_numbers[i] =shared_numbers[i] -b[i];
+                        }
                         int process_ended=0;
                         read(fd2[0],  &process_ended, sizeof(int));
                         if(process_ended == 1){
@@ -694,9 +715,18 @@ int main(){
                     printf("\n");
                     fflush(stdout);
                     int request_success=1;
+                    for(int i =0; i<resources; i++){
+                        if(b[i]>shared_numbers[i]){
+                            request_success=0;
+                            break;
+                        }
+                    }
                     write(fd5[1], &request_success, sizeof(int));
                     last_process=idx;
                     if(request_success){
+                        for(int i =0; i<resources; i++){
+                            shared_numbers[i] =shared_numbers[i] -b[i];
+                        }
                         int process_ended=0;
                         read(fd2[0],  &process_ended, sizeof(int));
                         if(process_ended == 1){
