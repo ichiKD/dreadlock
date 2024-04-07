@@ -471,6 +471,12 @@ int main(){
 
 
 
+    // computation_time = number of request and release 
+    //                    + parenthesized value in calculate + x from use_resources 
+
+
+
+
     // Semaphore initialization
     sem_unlink("ss1");
     sem_t* sem= sem_open("ss1", O_CREAT | O_EXCL, 0644, 0);
@@ -784,6 +790,7 @@ int main(){
                 int request_success=0;
                 read(fd5[ID][0], &request_success, sizeof(int));
                 if(request_success){
+                    computationTime1++;
                     for(int i=0; i<resources; i++){
                         shared_numbers[i]-=a[i];
                         allocated[i]+=a[i];
@@ -799,6 +806,7 @@ int main(){
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 2){
                 //release
+                computationTime1++;
                 for(int i=0; i<resources; i++){
                     int release_num = processInstructions[ID].Ins[current_instruction].second[i];
                     for(int j=0; j<release_num; j++){
@@ -810,6 +818,25 @@ int main(){
                     shared_numbers[i] += release_num;
                     allocated[i]      -= release_num;
                 }
+            }
+            else if(processInstructions[ID].Ins[current_instruction].first == 3){
+                //calculate
+                computationTime1+=processInstructions[ID].Ins[current_instruction].second[0];
+            }
+            else if(processInstructions[ID].Ins[current_instruction].first == 4){
+                //use_resorusces
+                computationTime1+=processInstructions[ID].Ins[current_instruction].second[0];
+            }
+            else if(processInstructions[ID].Ins[current_instruction].first == 5){
+                printf("The master_string is \n");
+                for(auto x: master_string){
+                    for(auto y: x){
+                        printf("%s, ", y.c_str());
+                    }
+                }
+                printf("\n");
+                fflush(stdout);
+                //print_recouses_used
             }
             else{
                 ;
