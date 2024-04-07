@@ -445,16 +445,48 @@ int main(){
     if (sem == SEM_FAILED) {
         perror("sem_open");
     }
+    sem_unlink("ss2");
+    sem_t* sem2= sem_open("ss2", O_CREAT | O_EXCL, 0644, 0);
+    if (sem2 == SEM_FAILED) {
+        perror("sem_open");
+    }
 
 
 
-    // Create child process
-    pid_t pid = fork();
+    int ID = process;
+    pid_t pid;
+    std::vector<pid_t> processID;
+    for(int i=0; i<process; i++){
+        pid = fork();
+        if (pid == -1) {
+            // Error occurred
+            perror("fork");
+            return 1;
+        } 
+        else if (pid == 0) {
+            // This is the child process
+            ID = i ;
+            // printf("Child process: ID=%d, PID=%d, Parent PID=%d\n", ID, getpid(), getppid());
+            // fflush(stdout);
+            break; // Child process terminates
+        } 
+        else {
+            // This is the parent process
+            // printf("Parent process: Created child with PID=%d\n", pid);
+            // fflush(stdout);
+            processID.push_back(pid);
+        }
+    }
 
+
+
+    printf("\n");
+    printf("%d %d\n", ID, process);
+    fflush(stdout);
     if (pid < 0) {
         perror("fork");
         exit(EXIT_FAILURE);
-    } else if (pid == 0) {
+    } else if (ID == 0) {
         // Child process
         close(fd1[0]); // Close unused read end of the pipe
         // Generate a random integer
@@ -470,7 +502,8 @@ int main(){
         // close(fd1[1]); // Close write end of the pipe in child
 
         exit(EXIT_SUCCESS);
-    } else {
+    } 
+    else if(ID==process){
         // Parent process
         close(fd1[1]); // Close unused write end of the pipe
         int sval;
@@ -484,11 +517,14 @@ int main(){
         // ***************
         // ***************
         // ***************
-        // int temp_val;
-        // scanf("%d", &temp_val);
-        sem_post(sem);
-
-
+        int temp_val;
+        scanf("%d", &temp_val);
+        if(temp_val == 1){
+            sem_post(sem);
+        }
+        else{
+            sem_post(sem2);
+        }
 
         int received_int;
         read(fd1[0], &received_int, sizeof(received_int));
@@ -498,6 +534,30 @@ int main(){
         // sem_destroy(sem); 
         exit(EXIT_SUCCESS);
     }
+    else{
+        // Child process
+        close(fd1[0]); // Close unused read end of the pipe
+        // Generate a random integer
+        int random_int = 96;
+        sem_wait(sem2); 
+        write(fd1[1], &random_int, sizeof(random_int));
+        int sval;
+        sem_getvalue(sem2, &sval);
+        printf("Semavalue: %d\n", sval);
+        
+        
+        // close(fd1[1]); // Close write end of the pipe in child
+
+        exit(EXIT_SUCCESS);
+    }
+
+
+    while (wait(NULL) != -1){
+        ;
+    }
+    munmap(shared_numbers, sizeof(int) * resources);
+    shm_unlink(SHARED_MEMORY_NAME);
+
 
     return 0;
 }
