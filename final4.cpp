@@ -362,7 +362,8 @@ void resources_to_semaphores(){
         std::vector<sem_t*> t;
         for(std::string item: r){
             sem_unlink(item.c_str());
-            sem_t *ss = sem_open(item.c_str(), O_CREAT, 0660, 0);
+            printf("Semaphore named %s\n",item.c_str() );
+            sem_t *ss = sem_open(item.c_str(), O_CREAT | O_EXCL, 0666, 10);
             if(ss == SEM_FAILED){
                 perror(item.c_str());
                 exit(EXIT_FAILURE);
@@ -373,12 +374,14 @@ void resources_to_semaphores(){
     }
 }
 
+
+
 void process_semaphores() {
     for (int i = 0; i < process; ++i) {
         std::string name = "Process_ID_" + std::to_string(i);
         sem_unlink(name.c_str());
         // Create semaphore with unique name
-        sem_t *ss = sem_open(name.c_str(), O_CREAT | O_EXCL, 0644, 0);
+        sem_t *ss = sem_open(name.c_str(), O_CREAT | O_EXCL, 0666, 0);
         if (ss == SEM_FAILED) {
             perror("sem_open");
             // Handle semaphore creation failure
@@ -763,6 +766,10 @@ int main(){
             std::vector<std::string> t;
             master_string.push_back(t);
         }
+        for(int i=0; i<resources; i++){
+            std::vector<sem_t *> t;
+            master_sem_t.push_back(t);
+        }
         int relative_time=0;
         int computationTime1=0;
         int first_request =0;
@@ -794,6 +801,26 @@ int main(){
                     for(int i=0; i<resources; i++){
                         shared_numbers[i]-=a[i];
                         allocated[i]+=a[i];
+                    }
+                    for(int i=0; i<resources; i++){
+                        int accquire_num = processInstructions[ID].Ins[current_instruction].second[i];
+                        while(accquire_num>0){
+                            int j=0;
+                            int sval;
+                            sem_t *ss=resourceListSemaphore[i][j];
+                            sem_getvalue(ss, &sval);
+                            printf("%d %d %d %d the sval is %d\n", ID, i, accquire_num, j, sval);
+                            if(sval>0){
+                                sem_wait(ss);
+                                master_sem_t[i].push_back(ss);
+                                master_string[i].push_back(resourceList[i][j]);
+                                j++;
+                                accquire_num--;
+                            }
+                            else{
+                                j++;
+                            }
+                        }
                     }
                     printf("request is success\n");
                     fflush(stdout);

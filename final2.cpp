@@ -357,7 +357,7 @@ void resources_to_semaphores(){
         for(std::string item: r){
             sem_unlink(item.c_str());
             int value=0;
-            sem_t *ss = sem_open(item.c_str(), O_CREAT, 0660, value);
+            sem_t *ss = sem_open(name.c_str(), O_CREAT | O_EXCL, 0644, value);
             if(ss == SEM_FAILED){
                 perror(item.c_str());
                 exit(EXIT_FAILURE);
@@ -649,6 +649,7 @@ int main(){
                             int sval;
                             sem_t *ss=resourceListSemaphore[i][j];
                             sem_getvalue(ss, &sval);
+                            printf("%d %d %d %d the sval is %d\n", ID, i, accquire_num, j, sval);
                             if(sval>0){
                                 sem_wait(ss);
                                 master_sem_t[i].push_back(ss);
