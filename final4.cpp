@@ -29,8 +29,7 @@ int endcount;
 
 
 
-struct Instructions
-{
+struct Instructions{
     std::vector<std::pair<int, std::vector<int>>> Ins;
     // INS[i] = 
     // request(1, 2, 3, 4, .. m) = {1, {1, 2, 3, ... m}}
@@ -42,21 +41,12 @@ struct Instructions
 };
 
 
-struct process{
-    int id;
-    std::vector<std::vector<int>> index_to_accquired_resources;
-};
 
 
 std::vector<struct Instructions> processInstructions; 
-std::vector<int> index_of_last_request_yet_to_be_processed;
-
+std::vector<sem_t*> processSemaphore;
 std::vector<std::vector<std::string> > resourceList;
 std::vector<std::vector<sem_t *>> resourceListSemaphore;
-std::vector<std::vector<int>> resourceListCheck;
-
-std::vector<sem_t*> processSemaphore;
-sem_t* schedulerSemaphore;
 
 
 using MyPriorityQueue = std::priority_queue<
@@ -778,6 +768,7 @@ int main(){
             printf("Process%d LOOP\n", ID);
             fflush(stdout);
             if(processInstructions[ID].Ins[current_instruction].first == 1){
+                relative_time++;
                 if(first_request != 0){
                     int process_ended=0;
                     write(fd2[ID][1],  &process_ended, sizeof(int));
@@ -833,6 +824,7 @@ int main(){
             }
             else if(processInstructions[ID].Ins[current_instruction].first == 2){
                 //release
+                relative_time++;
                 computationTime1++;
                 for(int i=0; i<resources; i++){
                     int release_num = processInstructions[ID].Ins[current_instruction].second[i];
@@ -891,12 +883,16 @@ int main(){
         }
         printf("Process%d ENDED\n", ID);
         fflush(stdout);
+        if(relative_time>deadline[ID]){
+            printf("Process%d missed with deadline\n", ID);
+            fflush(stdout);
+        }
         int process_ended=1;
         write(fd2[ID][1],  &process_ended, sizeof(int));
         printf("The svals after ending process is\n");
         for(auto x: resourceListSemaphore){
             for(auto y: x){
-                int sval=9000;
+                int sval=9000;  //Random value for debug purpose
                 sem_getvalue(y, &sval);
                 printf("%d ", sval);
             }
