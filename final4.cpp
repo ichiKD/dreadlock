@@ -363,7 +363,7 @@ void resources_to_semaphores(){
         for(std::string item: r){
             sem_unlink(item.c_str());
             printf("Semaphore named %s\n",item.c_str() );
-            sem_t *ss = sem_open(item.c_str(), O_CREAT | O_EXCL, 0666, 10);
+            sem_t *ss = sem_open(item.c_str(), O_CREAT | O_EXCL, 0666, 1);
             if(ss == SEM_FAILED){
                 perror(item.c_str());
                 exit(EXIT_FAILURE);
@@ -804,8 +804,8 @@ int main(){
                     }
                     for(int i=0; i<resources; i++){
                         int accquire_num = processInstructions[ID].Ins[current_instruction].second[i];
+                        int j=0;
                         while(accquire_num>0){
-                            int j=0;
                             int sval;
                             sem_t *ss=resourceListSemaphore[i][j];
                             sem_getvalue(ss, &sval);
@@ -837,10 +837,10 @@ int main(){
                 for(int i=0; i<resources; i++){
                     int release_num = processInstructions[ID].Ins[current_instruction].second[i];
                     for(int j=0; j<release_num; j++){
-                        // sem_t * ss = master_sem_t[i].back();
-                        // sem_post(ss);
-                        // master_sem_t[i].pop_back();
-                        // master_string[i].pop_back();
+                        sem_t * ss = master_sem_t[i].back();
+                        sem_post(ss);
+                        master_sem_t[i].pop_back();
+                        master_string[i].pop_back();
                     }
                     shared_numbers[i] += release_num;
                     allocated[i]      -= release_num;
@@ -870,10 +870,7 @@ int main(){
             }
             current_instruction++;
         }
-        printf("Process%d ENDED\n", ID);
-        fflush(stdout);
-        int process_ended=1;
-        write(fd2[ID][1],  &process_ended, sizeof(int));
+
         for(int i=0; i<resources; i++){
             shared_numbers[i] +=  allocated[i];
         }
@@ -883,6 +880,29 @@ int main(){
         }
         printf("\n");
         fflush(stdout);
+        for(int i=0; i<resources; i++){
+            int size = master_sem_t[i].size();
+            for(int j=0; j<size; j++){
+                sem_t * ss = master_sem_t[i].back();
+                sem_post(ss);
+                master_sem_t[i].pop_back();
+                master_string[i].pop_back();
+            }
+        }
+        printf("Process%d ENDED\n", ID);
+        fflush(stdout);
+        int process_ended=1;
+        write(fd2[ID][1],  &process_ended, sizeof(int));
+        printf("The svals after ending process is\n");
+        for(auto x: resourceListSemaphore){
+            for(auto y: x){
+                int sval=9000;
+                sem_getvalue(y, &sval);
+                printf("%d ", sval);
+            }
+            printf("\n");
+            fflush(stdout);
+        }
     }
 
 
