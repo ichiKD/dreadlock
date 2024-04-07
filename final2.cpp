@@ -59,7 +59,7 @@ std::vector<std::vector<sem_t *>> resourceListSemaphore;
 std::vector<std::vector<int>> resourceListCheck;
 
 std::vector<sem_t*> processSemaphore;
-
+sem_t* schedulerSemaphore;
 
 void read_text(){
     std::ifstream file("example.txt"); // Open the file
@@ -370,7 +370,7 @@ void resources_to_semaphores(){
 
 void process_semaphores() {
     for (int i = 0; i < process; ++i) {
-        int initialValue = 1;
+        int initialValue = 0;
         std::string name = "Process_ID_" + std::to_string(i);
         sem_unlink(name.c_str());
         // Create semaphore with unique name
@@ -398,7 +398,7 @@ int main(){
     printf("THe number of proces are %d\n", process);
     process_semaphores();
     printf("The size of processSemaphore is  %ld", processSemaphore.size());
-
+    fflush(stdout);
     const char* SHARED_MEMORY_NAME = "/my_shared_memory";
     int shm_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
     ftruncate(shm_fd, sizeof(int) * resources);
@@ -438,21 +438,27 @@ int main(){
     int fd1[2], fd2[2], fd3[2], fd4[2], fd5[2], fd6[2]; 
     if(pipe(fd1) == -1){
         printf("Error in making a pipe\n");
+        fflush(stdout);
     }
     if(pipe(fd2) == -1){
         printf("Error in making a pipe\n");
+        fflush(stdout);
     }
     if(pipe(fd3) == -1){
         printf("Error in making a pipe\n");
+        fflush(stdout);
     }
     if(pipe(fd4) == -1){
         printf("Error in making a pipe\n");
+        fflush(stdout);
     }
     if(pipe(fd5) == -1){
         printf("Error in making a pipe\n");
+        fflush(stdout);
     }
     if(pipe(fd6) == -1){
         printf("Error in making a pipe\n");
+        fflush(stdout);
     }
 
 
@@ -481,11 +487,13 @@ int main(){
             // This is the child process
             ID = i ;
             printf("Child process: PID=%d, Parent PID=%d\n", getpid(), getppid());
+            fflush(stdout);
             break; // Child process terminates
         } 
         else {
             // This is the parent process
             printf("Parent process: Created child with PID=%d\n", pid);
+            fflush(stdout);
             processID.push_back(pid);
         }
     }
@@ -524,7 +532,13 @@ int main(){
                     int currentIndex = select_process2.second.second;
                     last_process = currentIndex;
                     main_process_in_bankers_algo = currentIndex;
+                    printf("The %dth process is being posted by main process\n", currentIndex);
+                    fflush(stdout);
+                    sleep(5);
                     sem_post(processSemaphore[currentIndex]);
+                    printf("Sucess");
+                    printf("The %dth process is being posted by main process1\n", currentIndex);
+                    fflush(stdout);
                     std::vector<int> receivedData(resources);
                     read(fd1[0], receivedData.data(), resources * sizeof(int));
                     printf("The received request is\n");
@@ -532,6 +546,7 @@ int main(){
                         printf("%d ", receivedData[i]);
                     }
                     printf("\n");
+                    fflush(stdout);
                     int request_success=1;
                     write(fd5[1], &request_success, sizeof(int));
                     int process_ended=0;
@@ -551,8 +566,14 @@ int main(){
                     int currentIndex = select_process.second.second;
                     last_process = currentIndex;
                     main_process_in_bankers_algo = currentIndex;
+                    printf("The %dth process is being posted by main process\n", currentIndex);
                     fflush(stdout);
+                    sleep(5);
                     sem_post(processSemaphore[currentIndex]);
+                    printf("Sucess");
+                    printf("The %dth process is being posted by main process1\n", currentIndex);
+                    fflush(stdout);
+                    sleep(5);
                     std::vector<int> receivedData(resources);
                     read(fd1[0], receivedData.data(), resources * sizeof(int));
                     printf("The received request is\n");
@@ -560,6 +581,7 @@ int main(){
                         printf("%d ", receivedData[i]);
                     }
                     printf("\n");
+                    fflush(stdout);
                     int request_success=1;
                     write(fd5[1], &request_success, sizeof(int));
                     int process_ended=0;
@@ -591,16 +613,32 @@ int main(){
         }
         int relative_time=0;
         int computationTime1=0;
+        int first_request =1;
         while(current_instruction < processInstructions[ID].Ins.size()){
             if(processInstructions[ID].Ins[current_instruction].first == 1){
                 //request
                 //Send Request
                 int process_ended=0;
-                write(fd2[1],  &process_ended, sizeof(int));
-                write(fd3[1],  &relative_time, sizeof(int));
-                write(fd4[1],  &computationTime1, sizeof(int));
+                if(first_request == 0){
+                    write(fd2[1],  &process_ended, sizeof(int));
+                    write(fd3[1],  &relative_time, sizeof(int));
+                    write(fd4[1],  &computationTime1, sizeof(int));
+                }
+                first_request =0;
                 sem_wait(processSemaphore[ID]);
-                read(fd1[1], processInstructions[ID].Ins[current_instruction].second.data(), resources * sizeof(int));
+                printf("The %dth process has been posted by main process\n", ID);
+                printf("The request vector is\n");
+                for(auto x: processInstructions[ID].Ins[current_instruction].second){
+                    printf("%d ", x);
+                }
+                fflush(stdout);
+                std::vector<int> requestVector = processInstructions[ID].Ins[current_instruction].second;
+                write(fd1[1], requestVector.data(), requestVector.size() * sizeof(int));
+                ssize_t bytesWritten = write(fd1[1], requestVector.data(), requestVector.size() * sizeof(int));
+                if (bytesWritten < 0) {
+                    perror("Error writing to fd1");
+                    // Handle error appropriately
+                }
                 int request_success=0;
                 read(fd5[0], &request_success, sizeof(int));
                 if(request_success){
@@ -686,6 +724,7 @@ int main(){
             }
             else{
                 printf("Error in the child process\n");
+                fflush(stdout);
             }
             current_instruction++;
         }

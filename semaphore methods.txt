@@ -1,0 +1,15 @@
+
+named semaphore
+sem_open()
+sem_wait()
+sem_post()
+sem_unlink()
+sem_close()
+
+//Remove old semaphores
+sem_unlink("OLD_semaphores_NAME")   
+sem_t *semaphore = sem_open("NEW_NAME", IPC_CREAT, 0660, value) ;
+sem_post(semaphore)
+sem_wait(semaphore)
+sem_close()
+sem_unlink()
