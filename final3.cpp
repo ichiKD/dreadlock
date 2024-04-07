@@ -413,15 +413,67 @@ int main(){
 
 
 
-    int fd1[2];
-
+    int fd1[2], fd2[2], fd3[2], fd4[2], fd5[2], fd6[2]; 
 
 
     if(pipe(fd1) == -1){
-        printf("Error in making the pipe\n");
+        printf("Error in making a pipe\n");
+        fflush(stdout);
     }
-    pid_t id = fork();
-    if(id == 0){
+    if(pipe(fd2) == -1){
+        printf("Error in making a pipe\n");
+        fflush(stdout);
+    }
+    if(pipe(fd3) == -1){
+        printf("Error in making a pipe\n");
+        fflush(stdout);
+    }
+    if(pipe(fd4) == -1){
+        printf("Error in making a pipe\n");
+        fflush(stdout);
+    }
+    if(pipe(fd5) == -1){
+        printf("Error in making a pipe\n");
+        fflush(stdout);
+    }
+    if(pipe(fd6) == -1){
+        printf("Error in making a pipe\n");
+        fflush(stdout);
+    }
+
+
+    int ID = process;
+    pid_t pid;
+    std::vector<pid_t> processID;
+    for(int i=0; i<process; i++){
+        pid = fork();
+        if (pid == -1) {
+            // Error occurred
+            perror("fork");
+            return 1;
+        } 
+        else if (pid == 0) {
+            // This is the child process
+            ID = i ;
+            printf("Child process: ID=%d, PID=%d, Parent PID=%d\n", ID, getpid(), getppid());
+            fflush(stdout);
+            break; // Child process terminates
+        } 
+        else {
+            // This is the parent process
+            printf("Parent process: Created child with PID=%d\n", pid);
+            fflush(stdout);
+            processID.push_back(pid);
+        }
+    }
+
+
+
+    printf("\n");
+    printf("%d %d\n", ID, process);
+    fflush(stdout);
+
+    if(ID == 0){
         std::vector<int> a;
         for(int i=0; i<10; i++){
             a.push_back(i);
@@ -429,13 +481,25 @@ int main(){
         close(fd1[0]);
         write(fd1[1], a.data(), sizeof(int) *(a.size()));
     }
-    else{
+    else if(ID==process){
+        printf("The total number of process made are: %ld\n", processID.size());
+        fflush(stdout);
         std::vector<int> b(10);
         close(fd1[1]);
         read(fd1[0], b.data(), sizeof(int) *10);
+
         for(int x: b){
             printf("%d ", x);
         }
+        fflush(stdout);
     }
+    else{
+        printf("The remainging process %d:\n", ID);
+        fflush(stdout);
+    }
+    while (wait(NULL) != -1){
+        ;
+    }
+    
     return 0;
 }

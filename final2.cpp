@@ -634,11 +634,11 @@ int main(){
                 fflush(stdout);
                 std::vector<int> requestVector = processInstructions[ID].Ins[current_instruction].second;
                 write(fd1[1], requestVector.data(), requestVector.size() * sizeof(int));
-                ssize_t bytesWritten = write(fd1[1], requestVector.data(), requestVector.size() * sizeof(int));
-                if (bytesWritten < 0) {
-                    perror("Error writing to fd1");
-                    // Handle error appropriately
-                }
+                        ssize_t bytesWritten = write(fd1[1], requestVector.data(), requestVector.size() * sizeof(int));
+                        if (bytesWritten < 0) {
+                            perror("Error writing to fd1");
+                            // Handle error appropriately
+                        }
                 int request_success=0;
                 read(fd5[0], &request_success, sizeof(int));
                 if(request_success){
